@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  selector:
+    matchLabels:
+      run: api
+  template:
+    metadata:
+      labels:
+        run: api
+    spec:
+      containers:
+        - name: api
+          image: <IMAGE> # Actually, it is an application image.
+         resources:
+            limits:
+              cpu: "500m"
+              memory: "800Mi"
+          readinessProbe:
+            httpGet:
+              path: /health-check
+              port: 8080
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 4
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 8080
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 4
+            successThreshold: 1
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 20"]
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      startupProbe:
+        exec:
+          command:
+            - sh
+            - -c
+            - |
+              echo "$(date) startupProbe start" >> /tmp/startupProbe-check
+              if [ ! $(curl -s -w "%{http_code}\n" "http://localhost:8080/health-check" -o /dev/null) -eq 200 ]; then
+                echo "$(date) startupProbe failed" >> /tmp/startupProbe-check
+                exit 1
+              fi
+              echo "$(date) startupProbe warmup-start" >> /tmp/startupProbe-check
+              curl "http://localhost:8080/<API_PATH>"
+              sleep 40 # Actually, it is a warmup process.
+          echo "$(date) startupProbe warmup-end" >> /tmp/startupProbe-check
+        initialDelaySeconds: 0
+        periodSeconds: 120 #Increased to 120 seconds
+        timeoutSeconds: 95
+        successThreshold: 1
+        failureThreshold: 1
