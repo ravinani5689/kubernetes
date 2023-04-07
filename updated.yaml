@@ -58,7 +58,7 @@ spec:
               sleep 40 # Actually, it is a warmup process.
           echo "$(date) startupProbe warmup-end" >> /tmp/startupProbe-check
         initialDelaySeconds: 0
-        periodSeconds: 120 #Increased to 120 seconds
+        periodSeconds: 100 #Increased to 120 seconds
         timeoutSeconds: 95
         successThreshold: 1
         failureThreshold: 1
